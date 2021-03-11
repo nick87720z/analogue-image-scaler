@@ -2,6 +2,7 @@ Scripts for analogue-like high quality image display, as if it was captured
 by ideal camera.
 
 img-downscale-rgb.sh - 3x downscale for horizontal display layout.
+
 img-fft-resynth.sh - high quality rescale using FFT transformation
 
 Typical sequence:
