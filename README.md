@@ -8,7 +8,8 @@ img-fft-resynth.sh - high quality rescale using FFT transformation
 Typical sequence:
 1. Match image size to 3x displayed size, using img-fft-resynth
 2. Downscale to subpixel layout
-3. PROFIT)
+3. View with 1:1 scale
+4. PROFIT)
 
 Note: Even 3x fft upscale with 3x rgb downscale make smoother look due to how fft conversion works.
 
