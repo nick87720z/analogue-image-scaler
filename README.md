@@ -13,6 +13,9 @@ Typical sequence:
 
 Note: Even 3x fft upscale with 3x rgb downscale make smoother look due to how fft conversion works.
 
+Warning:
+FFT resynth performs very slow if tmpdir is located on slow media. Placing it in tmpfs gives best speed, but may be risky, as imagemagick can easily run out of memory for too big images (I would usually interrupt it before system becomes unresponsive, forcing me to do it anyway).
+
 Requirements:
 - imagemagick
 - coreutils
