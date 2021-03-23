@@ -29,6 +29,7 @@ rotate_fft() {
 }
 
 # Command line arguments
+
 self=img-resynth
 bc_prec=20
 
@@ -151,6 +152,7 @@ convert ${tmpdir}/src.miff -fft +adjoin ${tmpdir}/fft.miff
 ifft_size=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 
 # Find transform parameters
+
 echo 'Find transform parameters'
 rez=( $( bc <<< "
         scale=$bc_prec
@@ -173,6 +175,7 @@ echo 'Done (Find transform parameters)'
 echo isize $isize osize ${ow}x${oh} ifft_size $ifft_size offt_size $offt_size d $d
 
 # Resizing
+
 if [ $b_incr == 1 ]
 then
     # Find FFT border size
@@ -186,6 +189,7 @@ fi
 rotate_fft
 
 # Filtering
+
 side=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 if [ -n "${bands}" ] ; then
     echo Preparing filter
@@ -205,6 +209,7 @@ if [ -n "${bands}" ] ; then
 fi
 
 # IFT
+
 echo Inverse transform
 convert ${tmpdir}/fft-{0,1}.miff -ift -crop "${geom}" -repage "${geom}" ${tmpdir}/dest.miff
 convert ${tmpdir}/dest.miff ${ofile}
