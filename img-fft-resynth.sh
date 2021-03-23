@@ -36,8 +36,8 @@ tmpdir=
 ifile=
 ofile=
 depth=32
-width=
-height=
+ow=
+oh=
 bands=
 if [ -n "$*" ]; then
     while true; do
@@ -51,13 +51,13 @@ if [ -n "$*" ]; then
             --width )
             eval "${check_arg_missing}; ${check_arg_num}"
             if [ $1 -gt 0 ] ; then 
-                width=$1
+                ow=$1
             fi;;
             
             --height )
             eval "${check_arg_missing}; ${check_arg_num}"
             if [ $1 -gt 0 ] ; then 
-                height=$1
+                oh=$1
             fi;;
             
             --depth )
@@ -99,6 +99,8 @@ else
     exit
 fi
 
+# Pick actual tmpdir
+
 for d in "$tmpdir" "${XDG_RUNTIME_DIR}" "/tmp" "~" ; do
     d=$( realpath "$d" 2>/dev/null ) || continue
     [ -d "$d" ]                      || continue
@@ -106,61 +108,69 @@ for d in "$tmpdir" "${XDG_RUNTIME_DIR}" "/tmp" "~" ; do
     tmpdir="$( realpath "$d/$self" )"
     break
 done
+rm -rf "${tmpdir}"/*
 
-IM_FLAGS="-depth ${depth} -define quantum:format=floating-point -alpha off"
+IM_FLAGS="-depth $depth -define quantum:format=floating-point -alpha off"
 
-echo New width:   $width
-echo New height:  $height
+# Analyzing
+
+isize=$( identify "$ifile" | cut -f3 -d' ' )
+iw=$( cut -f1 -dx <<< $isize )
+ih=$( cut -f2 -dx <<< $isize )
+
+if [ $((ow)) -eq 0 -a $((oh)) -eq 0 ]; then
+    ow=$iw
+    oh=$ih
+elif [ $((ow)) -eq 0 ]; then
+    ow=$(( oh * iw / ih ))
+elif [ $((oh)) -eq 0 ]; then
+    oh=$(( ow * ih / iw ))
+fi
+geom="${ow}x${oh}+0+0"
+
+echo New width:   $ow
+echo New height:  $oh
 echo Bands:       $bands
 echo Color depth: $depth
 echo Input:       $ifile
 echo Output:      $ofile
 echo Tmpdir:      $tmpdir
 
-# Analyzing
-if [ -n "${width}" ] && [ -n "${height}" ]; then
-    geom="${width}x${height}+0+0"
-else
-    geom=$( identify "${ifile}" | cut -f4 -d' ' )
-fi
+# Prepare source
 
-# FFT
 echo Processing ${ifile}
 if [ "${ifile%.miff}" != "${ifile}" ] || [ "${ifile%.mif}" != "${ifile}" ] ; then
     cp "${ifile}" ${tmpdir}/src.miff
 else
     convert ${ifile} ${IM_FLAGS} ${tmpdir}/src.miff
 fi
-convert ${tmpdir}/src.miff -fft +adjoin ${tmpdir}/fft.miff
 
-# Extract source size
-isize=$( identify ${tmpdir}/src.miff | cut -f3 -d' ' )
-iw=$( cut -f1 -dx <<< ${isize} )
-ih=$( cut -f2 -dx <<< ${isize} )
+# FFT
+
+convert ${tmpdir}/src.miff -fft +adjoin ${tmpdir}/fft.miff
 ifft_size=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
-#rm ${tmpdir}/src.miff
 
 # Find transform parameters
 echo 'Find transform parameters'
 rez=( $( bc <<< "
-scale=${bc_prec}
-if (${width} / ${height} > ${iw} / ${ih})
-   sc = ${width} / ${iw} else sc = ${height} / ${ih}
+        scale=$bc_prec
+        if ($ow / $oh > $iw / $ih)
+           sc = $ow / $iw else sc = $oh / $ih
 
-scale=0
+        scale=0
 
-(b_incr = (sc > 1))               /* ret 0 */
-ffts = max (${width}, ${height})
-ffts + ffts % 2                   /* ret 1 */
-abs(ffts - ${ifft_size}) / 2      /* ret 2 */
+        (b_incr = (sc > 1))               /* ret 0 */
+        ffts = max ($ow, $oh)
+
+        ffts + ffts % 2                   /* ret 1 */
+        abs(ffts - $ifft_size) / 2      /* ret 2 */
 " ) )
 b_incr=${rez[0]}
 offt_size=${rez[1]}
 d=${rez[2]}
 echo 'Done (Find transform parameters)'
 
-echo isize $isize osize ${width}x${height} ifft_size $ifft_size offt_size $offt_size d $d
-#exit #DEBUG
+echo isize $isize osize ${ow}x${oh} ifft_size $ifft_size offt_size $offt_size d $d
 
 # Resizing
 if [ $b_incr == 1 ]
