@@ -143,7 +143,7 @@ echo Processing ${ifile}
 if [ "${ifile%.miff}" != "${ifile}" ] || [ "${ifile%.mif}" != "${ifile}" ] ; then
     cp "${ifile}" ${tmpdir}/src.miff
 else
-    convert ${ifile} ${IM_FLAGS} ${tmpdir}/src.miff
+    convert $ifile $IM_FLAGS ${tmpdir}/src.miff
 fi
 
 # FFT
@@ -178,9 +178,9 @@ echo isize $isize osize ${ow}x${oh} ifft_size $ifft_size offt_size $offt_size d 
 
 if [ $b_incr == 1 ]
 then
-    # Find FFT border size
-    convert ${tmpdir}/fft-0.miff -bordercolor black -border ${d} ${tmpdir}/fft-proc-0.miff
-    convert ${tmpdir}/fft-1.miff -bordercolor black -border ${d} ${tmpdir}/fft-proc-1.miff
+    # Add border for missing FFT frequencies
+    convert ${tmpdir}/fft-0.miff -bordercolor black -border $d ${tmpdir}/fft-proc-0.miff
+    convert ${tmpdir}/fft-1.miff -bordercolor black -border $d ${tmpdir}/fft-proc-1.miff
 else
     # Crop image
     convert ${tmpdir}/fft-0.miff -crop ${offt_size}x${offt_size}+${d}+${d} -repage ${offt_size}x${offt_size}+0+0 ${tmpdir}/fft-proc-0.miff
@@ -191,7 +191,7 @@ rotate_fft
 # Filtering
 
 side=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
-if [ -n "${bands}" ] ; then
+if [ -n "$bands" ] ; then
     echo Preparing filter
     (( r1 = bands, r2 = bands*30/40 ))
     (( r = (r1+r2) / 2, blur = (r1-r2) / 2, cent = side / 2 ))
@@ -211,8 +211,8 @@ fi
 # IFT
 
 echo Inverse transform
-convert ${tmpdir}/fft-{0,1}.miff -ift -crop "${geom}" -repage "${geom}" ${tmpdir}/dest.miff
-convert ${tmpdir}/dest.miff ${ofile}
+convert ${tmpdir}/fft-{0,1}.miff -ift -crop "$geom" -repage "$geom" ${tmpdir}/dest.miff
+convert ${tmpdir}/dest.miff $ofile
 
 #rm -rf ${tmpdir}/*
 
