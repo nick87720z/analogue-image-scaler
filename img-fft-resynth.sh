@@ -43,29 +43,25 @@ if [ -n "$*" ]; then
     while true; do
         case $1 in
             --bands )
-            eval "${check_arg_missing}"
-            eval "${check_arg_num}"
+            eval "${check_arg_missing}; ${check_arg_num}"
             if [ $1 -gt 0 ] ; then 
                 bands=$1
             fi;;
             
             --width )
-            eval "${check_arg_missing}"
-            eval "${check_arg_num}"
+            eval "${check_arg_missing}; ${check_arg_num}"
             if [ $1 -gt 0 ] ; then 
                 width=$1
             fi;;
             
             --height )
-            eval "${check_arg_missing}"
-            eval "${check_arg_num}"
+            eval "${check_arg_missing}; ${check_arg_num}"
             if [ $1 -gt 0 ] ; then 
                 height=$1
             fi;;
             
             --depth )
-            eval "${check_arg_missing}"
-            eval "${check_arg_num}"
+            eval "${check_arg_missing}; ${check_arg_num}"
             case $1 in 8|16|32|64 ) depth=$1;;
                 *) echo "Color depth must be factor of 2"
                    exit
