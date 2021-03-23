@@ -24,8 +24,8 @@ if ! is_num $1 ; then
 fi'
 
 rotate_fft() {
-    mv -f ${tmpdir}/fft-{proc-0,0}.miff
-    mv -f ${tmpdir}/fft-{proc-1,1}.miff
+    mv -f "${tmpdir}"/fft-{proc-,}0.miff 2>/dev/null
+    mv -f "${tmpdir}"/fft-{proc-,}1.miff 2>/dev/null
 }
 
 # Command line arguments
