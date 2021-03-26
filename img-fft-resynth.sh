@@ -172,8 +172,6 @@ $( printf "%s\n" "
 EOF
 echo 'Done (Find transform parameters)'
 
-echo isize $isize osize ${ow}x${oh} ifft_size $ifft_size offt_size $offt_size d $d
-
 # Resizing
 
 if [ $b_incr -eq 1 ]
@@ -193,7 +191,6 @@ rotate_fft
 side=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 if [ -n "$bands" ] ; then
     echo Preparing filter
-    echo center $cent, r1 $r1, r2 $r2, r $r, blur $blur, reg_size ${reg_size} reg_dx ${reg_dx}
 
     r1=$(( bands ))
     r2=$(( bands * 30 / 40 ))
