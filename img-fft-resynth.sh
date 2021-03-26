@@ -10,17 +10,19 @@ is_num() {
 }
 
 help() {
-    echo "Usage: $( basename $0) [--width PIXELS] [--height PIXELS] [--depth BITS] [--bands INTEGER] [--tmpdir PATH] INPUT_FILE OUTPUT_FILE"
+    printf '%s\n' "Usage: $( basename $0) [--width PIXELS] [--height PIXELS] [--depth BITS] [--bands INTEGER] [--tmpdir PATH] INPUT_FILE OUTPUT_FILE"
 }
+
+TIMER="time -f '%E'"
 
 check_arg_missing='
 if ! shift || [ -z "$*" ] ; then
-    echo "Option ${1} requires argument"
+    printf '\''%s\n'\'' "Option ${1} requires argument"
     exit
 fi'
 check_arg_num='
 if ! is_num $1 ; then
-    echo "Invalid argument for option ${1}"
+    printf '\''%s\n'\'' "Invalid argument for option ${1}"
     exit
 fi'
 
@@ -65,26 +67,26 @@ if [ -n "$*" ]; then
             --depth )
             eval "${check_arg_missing}; ${check_arg_num}"
             case $1 in 8|16|32|64 ) depth=$1;;
-                *) echo "Color depth must be factor of 2"
+                *) printf '%s\n' "Color depth must be factor of 2"
                    exit
             esac ;;
             
             --tmpdir )
             eval "${check_arg_missing}"
             tmpdir="$1"
-            echo tmpdir ${tmpdir}
+            printf '%s\n' "tmpdir ${tmpdir}"
             ;;
             
             * )
             if   [ -z "${ifile}" ] ; then
                 ifile=$( realpath -- "$1" 2>/dev/null ) || {
-                    echo "Missing input file"
+                    printf '%s\n' "Missing input file"
                     help
                     exit 
                 }
             elif [ -z "${ofile}" ] ; then
                 ofile=$( realpath -- "$1" 2>/dev/null ) || {
-                    echo "Missing output file"
+                    printf '%s\n' "Missing output file"
                     help
                     exit 
                 }
@@ -130,17 +132,17 @@ elif [ $(( oh )) -eq 0 ]; then
 fi
 geom="${ow}x${oh}+0+0"
 
-echo New width:   $ow
-echo New height:  $oh
-echo Bands:       $bands
-echo Color depth: $depth
-echo Input:       $ifile
-echo Output:      $ofile
-echo Tmpdir:      $tmpdir
+printf '%s\n' "New width:   $ow"
+printf '%s\n' "New height:  $oh"
+printf '%s\n' "Bands:       $bands"
+printf '%s\n' "Color depth: $depth"
+printf '%s\n' "Input:       $ifile"
+printf '%s\n' "Output:      $ofile"
+printf '%s\n' "Tmpdir:      $tmpdir"
 
 # Prepare source
 
-echo Processing ${ifile}
+printf '%s\n' "Processing ${ifile}"
 if [ "${ifile%.miff}" != "${ifile}" ] || [ "${ifile%.mif}" != "${ifile}" ] ; then
     cp "${ifile}" ${tmpdir}/src.miff
 else
@@ -149,12 +151,13 @@ fi
 
 # FFT
 
-convert ${tmpdir}/src.miff -fft +adjoin ${tmpdir}/fft.miff
+printf '%s' 'FFT... '
+$TIMER convert ${tmpdir}/src.miff -fft +adjoin ${tmpdir}/fft.miff
 ifft_size=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 
 # Find transform parameters
 
-echo 'Find transform parameters'
+printf '%s' 'Find transform parameters... '
 { read b_incr; read offt_size; read d; } << EOF
 $( printf "%s\n" "
         scale=$bc_prec
@@ -170,7 +173,7 @@ $( printf "%s\n" "
         abs(ffts - $ifft_size) / 2      /* ret 2 */
 " | bc )
 EOF
-echo 'Done (Find transform parameters)'
+printf '%s\n' 'Done'
 
 # Resizing
 
@@ -190,7 +193,6 @@ rotate_fft
 
 side=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 if [ -n "$bands" ] ; then
-    echo Preparing filter
 
     r1=$(( bands ))
     r2=$(( bands * 30 / 40 ))
@@ -198,20 +200,21 @@ if [ -n "$bands" ] ; then
     blur=$(( (r1-r2) / 2 ))
     cent=$(( side / 2 ))
 
-    time convert -size ${side}x${side} xc:black \
+    printf '%s' 'Preparing filter... '
+    $TIMER convert -size ${side}x${side} xc:black \
             -fill white -draw "circle ${cent},${cent} $(( cent + r )),${cent}" \
             -blur $(( blur*1 ))x$(( blur*1 )) \
             -contrast-stretch 0 ${tmpdir}/filter.miff
 
-    echo Applying filter
-    convert ${tmpdir}/fft-0.miff ${tmpdir}/filter.miff -compose multiply -composite ${tmpdir}/fft-proc-0.miff
+    printf '%s' 'Applying filter... '
+    $TIMER convert ${tmpdir}/fft-0.miff ${tmpdir}/filter.miff -compose multiply -composite ${tmpdir}/fft-proc-0.miff
     rotate_fft
 fi
 
 # IFT
 
-echo Inverse transform
-convert ${tmpdir}/fft-0.miff ${tmpdir}/fft-1.miff -ift -crop "$geom" -repage "$geom" ${tmpdir}/dest.miff
+printf '%s' 'Inverse FFT... '
+$TIMER convert ${tmpdir}/fft-0.miff ${tmpdir}/fft-1.miff -ift -crop "$geom" -repage "$geom" ${tmpdir}/dest.miff
 convert ${tmpdir}/dest.miff $ofile
 
 #rm -rf ${tmpdir}/*
