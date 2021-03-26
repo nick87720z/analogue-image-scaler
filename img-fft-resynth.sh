@@ -13,7 +13,7 @@ help() {
     printf '%s\n' "Usage: $( basename $0) [--width PIXELS] [--height PIXELS] [--depth BITS] [--bands INTEGER] [--tmpdir PATH] INPUT_FILE OUTPUT_FILE"
 }
 
-TIMER="time -f '%E'"
+TIMER="env time -f '%E'"
 
 check_arg_missing='
 if ! shift || [ -z "$*" ] ; then
