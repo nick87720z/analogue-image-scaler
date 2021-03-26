@@ -1,11 +1,12 @@
-#!/bin/bash
+#!/bin/sh
 # TODO: add resize code
 
-shopt -s extglob
+#shopt -s extglob
 
 is_num() {
-    [ -z "${1##+([0-9])}" ]
-    return $?
+    for n in "$@"; do case ${n#[+-]} in
+    ''|*[!0-9.]* | '.' | *.*.*) return 1
+    esac; done
 }
 
 help() {
@@ -24,8 +25,8 @@ if ! is_num $1 ; then
 fi'
 
 rotate_fft() {
-    mv -f "${tmpdir}"/fft-{proc-,}0.miff 2>/dev/null
-    mv -f "${tmpdir}"/fft-{proc-,}1.miff 2>/dev/null
+    mv -f "${tmpdir}"/fft-proc-0.miff "${tmpdir}"/fft-0.miff 2>/dev/null
+    mv -f "${tmpdir}"/fft-proc-1.miff "${tmpdir}"/fft-1.miff 2>/dev/null
 }
 
 # Command line arguments
@@ -116,8 +117,8 @@ IM_FLAGS="-depth $depth -define quantum:format=floating-point -alpha off"
 # Analyzing
 
 isize=$( identify "$ifile" | cut -f3 -d' ' )
-iw=$( cut -f1 -dx <<< $isize )
-ih=$( cut -f2 -dx <<< $isize )
+iw=$( printf "%s\n" "$isize" | cut -f1 -dx )
+ih=$( printf "%s\n" "$isize" | cut -f2 -dx )
 
 if [ $((ow)) -eq 0 -a $((oh)) -eq 0 ]; then
     ow=$iw
@@ -154,7 +155,8 @@ ifft_size=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 # Find transform parameters
 
 echo 'Find transform parameters'
-rez=( $( bc <<< "
+{ read b_incr; read offt_size; read d; } << EOF
+$( printf "%s\n" "
         scale=$bc_prec
         if ($ow / $oh > $iw / $ih)
            sc = $ow / $iw else sc = $oh / $ih
@@ -166,17 +168,15 @@ rez=( $( bc <<< "
 
         ffts + ffts % 2                   /* ret 1 */
         abs(ffts - $ifft_size) / 2      /* ret 2 */
-" ) )
-b_incr=${rez[0]}
-offt_size=${rez[1]}
-d=${rez[2]}
+" | bc )
+EOF
 echo 'Done (Find transform parameters)'
 
 echo isize $isize osize ${ow}x${oh} ifft_size $ifft_size offt_size $offt_size d $d
 
 # Resizing
 
-if [ $b_incr == 1 ]
+if [ $b_incr -eq 1 ]
 then
     # Add border for missing FFT frequencies
     convert ${tmpdir}/fft-0.miff -bordercolor black -border $d ${tmpdir}/fft-proc-0.miff
@@ -193,9 +193,13 @@ rotate_fft
 side=$( identify ${tmpdir}/fft-0.miff | cut -f3 -d' ' | cut -f1 -dx )
 if [ -n "$bands" ] ; then
     echo Preparing filter
-    (( r1 = bands, r2 = bands*30/40 ))
-    (( r = (r1+r2) / 2, blur = (r1-r2) / 2, cent = side / 2 ))
     echo center $cent, r1 $r1, r2 $r2, r $r, blur $blur, reg_size ${reg_size} reg_dx ${reg_dx}
+
+    r1=$(( bands ))
+    r2=$(( bands * 30 / 40 ))
+    r=$(( (r1+r2) / 2 ))
+    blur=$(( (r1-r2) / 2 ))
+    cent=$(( side / 2 ))
 
     time convert -size ${side}x${side} xc:black \
             -fill white -draw "circle ${cent},${cent} $(( cent + r )),${cent}" \
@@ -204,14 +208,13 @@ if [ -n "$bands" ] ; then
 
     echo Applying filter
     convert ${tmpdir}/fft-0.miff ${tmpdir}/filter.miff -compose multiply -composite ${tmpdir}/fft-proc-0.miff
-    #rm ${tmpdir}/filter.miff
     rotate_fft
 fi
 
 # IFT
 
 echo Inverse transform
-convert ${tmpdir}/fft-{0,1}.miff -ift -crop "$geom" -repage "$geom" ${tmpdir}/dest.miff
+convert ${tmpdir}/fft-0.miff ${tmpdir}/fft-1.miff -ift -crop "$geom" -repage "$geom" ${tmpdir}/dest.miff
 convert ${tmpdir}/dest.miff $ofile
 
 #rm -rf ${tmpdir}/*
