@@ -17,10 +17,10 @@ Warning:
 FFT resynth performs very slow if tmpdir is located on slow media. Placing it in tmpfs gives best speed, but may be risky, as imagemagick can easily run out of memory for too big images (I would usually interrupt it before system becomes unresponsive, forcing me to do it anyway).
 
 Requirements:
-- imagemagick
+- POSIX shell
 - coreutils
 - bc
-- bash (never tested with other shells)
-- lots of RAM for too big input images (imagemagick fft filter feature)
+- imagemagick
+- lots of RAM and/or patience for too big input images (imagemagick fft filter feature)
 
 Could be adapted to almost any layout (even 2x2, if you find, how to map color components from each subpixel to even sized grid).
