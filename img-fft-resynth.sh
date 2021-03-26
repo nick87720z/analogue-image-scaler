@@ -120,12 +120,12 @@ isize=$( identify "$ifile" | cut -f3 -d' ' )
 iw=$( printf "%s\n" "$isize" | cut -f1 -dx )
 ih=$( printf "%s\n" "$isize" | cut -f2 -dx )
 
-if [ $((ow)) -eq 0 -a $((oh)) -eq 0 ]; then
+if [ $(( ow )) -eq 0 -a $(( oh )) -eq 0 ]; then
     ow=$iw
     oh=$ih
-elif [ $((ow)) -eq 0 ]; then
+elif [ $(( ow )) -eq 0 ]; then
     ow=$(( oh * iw / ih ))
-elif [ $((oh)) -eq 0 ]; then
+elif [ $(( oh )) -eq 0 ]; then
     oh=$(( ow * ih / iw ))
 fi
 geom="${ow}x${oh}+0+0"
